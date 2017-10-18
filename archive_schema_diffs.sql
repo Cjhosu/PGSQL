@@ -72,40 +72,38 @@ $BODY$
   LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION create_archive_table()
+CREATE OR REPLACE FUNCTION script_archive_tables()
 RETURNS text AS
 $$
 DECLARE var text;
         var2 text;
         schema_dif record;
 BEGIN
-FOR schema_dif IN
+WITH missing_tbl AS(
 SELECT p.table_name FROM information_schema.tables p
   LEFT JOIN information_schema.tables a
     ON p.table_name = a.table_name
    AND p.table_schema = 'public'
    AND a.table_schema = 'archive'
- WHERE a.table_name is null  and p.table_schema = 'public'
-  LOOP
+ WHERE a.table_name is null  and p.table_schema = 'public' limit 1)
+SELECT * from missing_tbl INTO schema_dif;
    var := 'SELECT generate_create_table_statement ('''||schema_dif.table_name ||''');';
 BEGIN
  EXECUTE var into var2;
 Return var2;
 END;
-   END LOOP;
-   END
-     ;
+END ;
 $$
 Language plpgsql;
 
 
-CREATE OR REPLACE FUNCTION update_archive()
+CREATE OR REPLACE FUNCTION script_archive_columns()
 RETURNS text AS
 $$
 DECLARE var text;
         schema_dif record;
 BEGIN
-FOR schema_dif IN
+WITH  missing_clm as(
 SELECT p.table_name
        ,p.column_name
        , p.data_type
@@ -115,11 +113,70 @@ SELECT p.table_name
    AND p.table_name = a.table_name
    AND a.table_schema = 'archive'
    AND p.table_schema = 'public'
- WHERE a.table_schema is null and p.table_schema = 'public'
-LOOP
+ WHERE a.table_schema is null and p.table_schema = 'public' limit 1)
+Select * From missing_clm INTO schema_dif;
 var := 'ALTER TABLE archive.'||schema_dif.table_name ||' ADD COLUMN '|| schema_dif.column_name ||' ' || schema_dif.data_type ||';';
-END LOOP;
 RETURN var;
 END;
 $$
 Language plpgsql;
+
+
+CREATE OR REPLACE FUNCTION create_archive_tables()
+RETURNS void AS
+$$
+DECLARE out_var text;
+BEGIN
+WHILE 1=1
+LOOP
+BEGIN
+ EXECUTE 'SELECT script_archive_tables();' INTO out_var;
+EXECUTE out_var;
+EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'All tables created';
+RETURN;
+END;
+END LOOP;
+END;
+$$
+Language plpgsql;
+
+CREATE OR REPLACE FUNCTION create_archive_columns()
+RETURNS void AS
+$$
+DECLARE out_var text;
+BEGIN
+WHILE 1=1
+LOOP
+BEGIN
+ EXECUTE 'SELECT script_archive_columns();' INTO out_var;
+EXECUTE out_var;
+EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'All columns added';
+RETURN;
+END;
+END LOOP;
+END;
+$$
+Language plpgsql;
+
+CREATE OR REPLACE FUNCTION run_archive_scripts()
+RETURNS void AS
+$$
+BEGIN
+EXECUTE 'SELECT create_archive_tables();';
+EXECUTE 'SELECT create_archive_columns();';
+END;
+$$
+Language plpgsql;
+
+
+
+
+
+
+
+
+
+
+
