@@ -65,14 +65,18 @@ SELECT t.tablename
   LEFT JOIN init_fk fk
     ON t.tablename = fk.foreign_table_name
  WHERE fk.foreign_table_name is null and t.tablename not like 'arch%';
+
 BEGIN
-rec_id := (Select min(id) from arch_can_delete where c.tablename='pharmacy_notes' and is_done = 'f');
+
+rec_id := (Select min(id) from arch_can_deletei c where c.tablename='pharmacy_notes' and is_done = 'f');
 archive_table := (SELECT c.tablename from arch_can_delete c where id = rec_id);
 
 EXECUTE 'Select fn_archive_table_data('''||archive_table||''',''date'');';
 
-UPDATE 
+UPDATE arch_can_delete Set is_done = true where id = rec_id;
+
 END;
+
 END;
 
 $$
