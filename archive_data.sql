@@ -39,6 +39,8 @@ id        SERIAL PRIMARY KEY
 ,is_done BOOLEAN DEFAULT FALSE
 );
 
+--id the tables that are not refrenced by a fk (it is safe to delete from these now)
+
 WITH init_fk AS (
 SELECT tc.constraint_name
        ,ccu.table_name AS foreign_table_name
@@ -66,6 +68,7 @@ SELECT t.tablename
     ON t.tablename = fk.foreign_table_name
  WHERE fk.foreign_table_name is null and t.tablename not like 'arch%';
 
+-- Get the tables we can delte from pass them to the archiving function
 BEGIN
 
 rec_id := (Select min(id) from arch_can_deletei c where c.tablename='pharmacy_notes' and is_done = 'f');
@@ -73,6 +76,7 @@ archive_table := (SELECT c.tablename from arch_can_delete c where id = rec_id);
 
 EXECUTE 'Select fn_archive_table_data('''||archive_table||''',''date'');';
 
+-- Mark the record we just did
 UPDATE arch_can_delete Set is_done = true where id = rec_id;
 
 END;
