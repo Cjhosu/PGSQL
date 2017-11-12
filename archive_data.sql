@@ -1,26 +1,3 @@
-CREATE OR REPLACE FUNCTION fn_archive_table_data(tablename text, archive_mode text)
-RETURNS void AS $$
-
-BEGIN
-IF $2 = 'date'
-THEN
-BEGIN
-
-EXECUTE 'INSERT INTO archive.'||$1|| '
-SELECT * From public.'||$1||' where delete_on <= now();';
-
-EXECUTE 'DELETE FROM public.'||$1|| '
-Where id in (Select id from  archive.'||$1||');';
-END;
-END IF;
-END;
-
-$$
-
-language plpgsql;
-
-
-
 CREATE OR REPLACE FUNCTION find_and_archive()
 RETURNS VOID AS $$
 
@@ -70,15 +47,18 @@ SELECT t.tablename
 
 -- Get the tables we can delte from pass them to the archiving function
 BEGIN
-
-rec_id := (Select min(id) from arch_can_deletei c where c.tablename='pharmacy_notes' and is_done = 'f');
+WHILE (Select count(*) FROM arch_can_delete WHERE is_done='f') > 0
+LOOP
+BEGIN
+rec_id := (Select min(id) FROM arch_can_delete c WHERE is_done = 'f');
 archive_table := (SELECT c.tablename from arch_can_delete c where id = rec_id);
 
-EXECUTE 'Select fn_archive_table_data('''||archive_table||''',''date'');';
+EXECUTE 'SELECT fn_archive_table_data('''||archive_table||''',''date'');';
 
 -- Mark the record we just did
-UPDATE arch_can_delete Set is_done = true where id = rec_id;
-
+UPDATE arch_can_delete SET is_done = 't' WHERE id = rec_id;
+END;
+END LOOP;
 END;
 
 END;
