@@ -26,6 +26,7 @@ RETURNS VOID AS $$
 
 DECLARE
         archive_table TEXT;
+        rec_id INTEGER;
         sql TEXT;
 BEGIN
 -- Create a table that holds the things we can delete
@@ -35,6 +36,7 @@ DROP TABLE IF EXISTS arch_can_delete;
 CREATE TABLE arch_can_delete(
 id        SERIAL PRIMARY KEY
 ,tablename TEXT
+,is_done BOOLEAN DEFAULT FALSE
 );
 
 WITH init_fk AS (
@@ -63,10 +65,14 @@ SELECT t.tablename
   LEFT JOIN init_fk fk
     ON t.tablename = fk.foreign_table_name
  WHERE fk.foreign_table_name is null and t.tablename not like 'arch%';
-
-archive_table := (SELECT c.tablename from arch_can_delete c where c.tablename='pharmacy_notes');
+BEGIN
+rec_id := (Select min(id) from arch_can_delete where c.tablename='pharmacy_notes' and is_done = 'f');
+archive_table := (SELECT c.tablename from arch_can_delete c where id = rec_id);
 
 EXECUTE 'Select fn_archive_table_data('''||archive_table||''',''date'');';
+
+UPDATE 
+END;
 END;
 
 $$
