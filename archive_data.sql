@@ -16,6 +16,36 @@ id        SERIAL PRIMARY KEY
 ,is_done BOOLEAN DEFAULT FALSE
 );
 
+
+-- create a table that contains the fk relationships of anything that should be deleted
+
+DROP TABLE IF EXISTS arch_fk_constraints;
+
+CREATE TABLE arch_fk_constraints(
+id SERIAL PRIMARY KEY
+,to_archive text
+,remove_first text
+);
+
+-- seed it
+
+INSERT INTO arch_fk_constraints (to_archive, remove_first)
+SELECT ccu.table_name AS foreign_table_name
+       ,tc.table_name
+FROM
+    information_schema.table_constraints AS tc
+    JOIN information_schema.key_column_usage AS kcu
+      ON tc.constraint_name = kcu.constraint_name
+    JOIN information_schema.constraint_column_usage AS ccu
+      ON ccu.constraint_name = tc.constraint_name
+WHERE constraint_type = 'FOREIGN KEY' and ccu.table_name in (
+SELECT table_name
+  FROM information_schema.columns
+ WHERE column_name = 'delete_on' and table_schema = 'public'
+)
+;
+
+
 --id the tables that are not refrenced by a fk (it is safe to delete from these now)
 
 WITH init_fk AS (
