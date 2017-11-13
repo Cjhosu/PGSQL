@@ -105,6 +105,9 @@ DELETE FROM arch_all_tables WHERE tablename = archive_table;
 END;
 END LOOP;
 
+IF (Select count(*) from arch_all_tables) >0
+THEN
+
 INSERT INTO arch_can_delete (tablename, is_done)
 SELECT (SELECT a.tablename
 FROM arch_all_tables a
@@ -114,9 +117,11 @@ LEFT JOIN arch_can_delete d
 ON a.tablename = d.tablename
 WHERE fk.to_archive is null and d.tablename is null), 'f';
 
+END IF;
 
 END;
 END LOOP;
+
 END;
 END;
 
