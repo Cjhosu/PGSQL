@@ -93,6 +93,9 @@ EXECUTE 'SELECT fn_archive_table_data('''||archive_table||''',''date'');';
 
 -- Mark the record we just did
 UPDATE arch_can_delete SET is_done = 't' WHERE id = rec_id;
+
+DELETE FROM arch_fk_constraints WHERE remove_first = archive_table;
+
 END;
 END LOOP;
 END;
