@@ -6,15 +6,21 @@ DECLARE
         rec_id INTEGER;
         sql TEXT;
 BEGIN
--- Create a table that holds the things we can delete
 
-DROP TABLE IF EXISTS arch_can_delete;
+-- Create a table that holds the things we want to delete
 
-CREATE TABLE arch_can_delete(
+DROP TABLE IF EXISTS arch_all_tables;
+
+CREATE TABLE arch_all_tables(
 id        SERIAL PRIMARY KEY
 ,tablename TEXT
-,is_done BOOLEAN DEFAULT FALSE
 );
+
+-- seed it
+INSERT INTO arch_all_tables (tablename)
+SELECT table_name
+  FROM information_schema.columns
+ WHERE column_name = 'delete_on' and table_schema = 'public';
 
 
 -- create a table that contains the fk relationships of anything that should be deleted
@@ -39,14 +45,21 @@ FROM
     JOIN information_schema.constraint_column_usage AS ccu
       ON ccu.constraint_name = tc.constraint_name
 WHERE constraint_type = 'FOREIGN KEY' and ccu.table_name in (
-SELECT table_name
-  FROM information_schema.columns
- WHERE column_name = 'delete_on' and table_schema = 'public'
-)
-;
+SELECT tablename
+  FROM arch_all_tables
+);
 
+-- Create a table that holds the things we can delete now because they are not referenced  by a fk
 
---id the tables that are not refrenced by a fk (it is safe to delete from these now)
+DROP TABLE IF EXISTS arch_can_delete;
+
+CREATE TABLE arch_can_delete(
+id        SERIAL PRIMARY KEY
+,tablename TEXT
+,is_done BOOLEAN DEFAULT FALSE
+);
+
+-- seed it
 
 WITH init_fk AS (
 SELECT tc.constraint_name
@@ -62,18 +75,12 @@ SELECT tc.constraint_name
  WHERE constraint_type = 'FOREIGN KEY'
 )
 
-, all_tab AS (
-SELECT table_name
-  FROM information_schema.columns
- WHERE column_name = 'delete_on' and table_schema = 'public'
-)
-
 INSERT INTO arch_can_delete (tablename)
 SELECT t.table_name
-  FROM all_tab t
+  FROM arch_all_tables t
   LEFT JOIN init_fk fk
-    ON t.table_name = fk.foreign_table_name
- WHERE fk.foreign_table_name is null and t.table_name not like 'arch%';
+    ON t.tablename = fk.foreign_table_name
+ WHERE fk.foreign_table_name is null and t.tablename not like 'arch%';
 
 -- Get the tables we can delte from pass them to the archiving function
 BEGIN
