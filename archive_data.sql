@@ -22,7 +22,6 @@ SELECT table_name
   FROM information_schema.columns
  WHERE column_name = 'delete_on' and table_schema = 'public';
 
-
 -- create a table that contains the fk relationships of anything that should be deleted
 
 DROP TABLE IF EXISTS arch_fk_constraints;
@@ -76,7 +75,7 @@ SELECT tc.constraint_name
 )
 
 INSERT INTO arch_can_delete (tablename)
-SELECT t.table_name
+SELECT t.tablename
   FROM arch_all_tables t
   LEFT JOIN init_fk fk
     ON t.tablename = fk.foreign_table_name
@@ -97,9 +96,6 @@ UPDATE arch_can_delete SET is_done = 't' WHERE id = rec_id;
 END;
 END LOOP;
 END;
-
 END;
 
-$$
-
-LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
