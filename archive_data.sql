@@ -33,17 +33,17 @@ SELECT tc.constraint_name
 )
 
 , all_tab AS (
-SELECT pt.tablename 
-  FROM pg_tables pt 
- WHERE schemaname = 'public'
+SELECT table_name
+  FROM information_schema.columns
+ WHERE column_name = 'delete_on' and table_schema = 'public'
 )
 
 INSERT INTO arch_can_delete (tablename)
-SELECT t.tablename
+SELECT t.table_name
   FROM all_tab t
   LEFT JOIN init_fk fk
-    ON t.tablename = fk.foreign_table_name
- WHERE fk.foreign_table_name is null and t.tablename not like 'arch%';
+    ON t.table_name = fk.foreign_table_name
+ WHERE fk.foreign_table_name is null and t.table_name not like 'arch%';
 
 -- Get the tables we can delte from pass them to the archiving function
 BEGIN
