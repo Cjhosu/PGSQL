@@ -95,6 +95,16 @@ EXECUTE 'SELECT fn_archive_table_data('''||archive_table||''',''date'');';
 UPDATE arch_can_delete SET is_done = 't' WHERE id = rec_id;
 
 DELETE FROM arch_fk_constraints WHERE remove_first = archive_table;
+DELETE FROM arch_all_tables WHERE tablename = archive_table;
+
+INSERT INTO arch_can_delete (tablename, is_done)
+SELECT (SELECT a.tablename
+FROM arch_all_tables a
+LEFT JOIN arch_fk_constraints fk
+ON a.tablename = fk.to_archive
+LEFT JOIN arch_can_delete d
+ON a.tablename = d.tablename
+WHERE fk.to_archive is null and d.tablename is null), 'f';
 
 END;
 END LOOP;
