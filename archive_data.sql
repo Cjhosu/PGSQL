@@ -83,9 +83,14 @@ SELECT t.tablename
 
 -- Get the tables we can delte from pass them to the archiving function
 BEGIN
+WHILE (SELECT COUNT(*) FROM arch_all_tables) > 0
+LOOP
+BEGIN
+
 WHILE (Select count(*) FROM arch_can_delete WHERE is_done='f') > 0
 LOOP
 BEGIN
+
 rec_id := (Select min(id) FROM arch_can_delete c WHERE is_done = 'f');
 archive_table := (SELECT c.tablename from arch_can_delete c where id = rec_id);
 
@@ -97,6 +102,9 @@ UPDATE arch_can_delete SET is_done = 't' WHERE id = rec_id;
 DELETE FROM arch_fk_constraints WHERE remove_first = archive_table;
 DELETE FROM arch_all_tables WHERE tablename = archive_table;
 
+END;
+END LOOP;
+
 INSERT INTO arch_can_delete (tablename, is_done)
 SELECT (SELECT a.tablename
 FROM arch_all_tables a
@@ -105,6 +113,7 @@ ON a.tablename = fk.to_archive
 LEFT JOIN arch_can_delete d
 ON a.tablename = d.tablename
 WHERE fk.to_archive is null and d.tablename is null), 'f';
+
 
 END;
 END LOOP;
