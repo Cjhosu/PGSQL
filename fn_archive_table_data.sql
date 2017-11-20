@@ -11,8 +11,8 @@ THEN
 BEGIN
 
 CREATE TABLE IF NOT EXISTS arch_record_logging(
-id SERIAL PRIMARY KEY
-,source_id INTEGER
+id BIGSERIAL PRIMARY KEY
+,source_id BIGINT
 ,source_table CHARACTER VARYING(62)
 ,batch_id INTEGER
 );
@@ -38,10 +38,10 @@ INSERT INTO arch_batch_logging (archived_at) VALUES (now());
 EXECUTE 'INSERT INTO arch_current_batch
 SELECT id from public.'||$1||' where delete_on <= now()
  ORDER BY delete_on
- LIMIT 1000;';
+ LIMIT 5000;';
 
 EXECUTE 'INSERT INTO archive.'||$1|| '
-SELECT t.* From public.'||$1||' t JOIN arch_current_batch acb ON t.id = acb.id;';
+SELECT p.* From public.'||$1||' p JOIN arch_current_batch acb ON p.id = acb.id;';
 
 EXECUTE 'DELETE FROM public.'||$1|| '
 Where id in (Select id from  arch_current_batch);';
