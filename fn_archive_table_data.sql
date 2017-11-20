@@ -2,7 +2,6 @@ CREATE OR REPLACE FUNCTION fn_archive_table_data(tablename text, archive_mode te
 RETURNS void AS $$
 DECLARE
   row_num BIGINT;
-  batch_num INTEGER;
 BEGIN
   IF $2 = 'date'
     THEN
