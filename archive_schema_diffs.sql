@@ -169,14 +169,3 @@ EXECUTE 'SELECT create_archive_columns();';
 END;
 $$
 Language plpgsql;
-
-
-
-
-
-
-
-
-
-
-
