@@ -29,7 +29,7 @@ id BIGINT PRIMARY KEY
 
 row_num := (SELECT 1);
 
-WHILE row_num  > 0
+WHILE row_num > 0
 LOOP
 BEGIN
 
@@ -40,10 +40,10 @@ SELECT id from public.'||$1||' where delete_on <= now()
  ORDER BY delete_on
  LIMIT 5000;';
 
-EXECUTE 'INSERT INTO archive.'||$1|| '
+EXECUTE 'INSERT INTO archive.'||$1||'
 SELECT p.* From public.'||$1||' p JOIN arch_current_batch acb ON p.id = acb.id;';
 
-EXECUTE 'DELETE FROM public.'||$1|| '
+EXECUTE 'DELETE FROM public.'||$1||'
 Where id in (Select id from  arch_current_batch);';
 
 IF (Select count(*) from arch_current_batch) > 0
