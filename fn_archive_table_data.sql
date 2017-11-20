@@ -49,7 +49,7 @@ Where id in (Select id from  arch_current_batch);';
 IF (Select count(*) from arch_current_batch) > 0
 THEN
 EXECUTE 'INSERT INTO arch_record_logging (source_id, source_table, batch_id)
-SELECT (Select id from arch_current_batch),'''||$1||''',(Select max(id) from arch_batch_logging);';
+SELECT id, '''||$1||''', (Select max(id) from arch_batch_logging) from arch_current_batch;';
 END IF;
 
 TRUNCATE TABLE arch_current_batch;
