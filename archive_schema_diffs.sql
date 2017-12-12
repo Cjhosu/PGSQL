@@ -121,6 +121,40 @@ END;
 $$
 Language plpgsql;
 
+CREATE OR REPLACE FUNCTION script_data_type_diffs()
+RETURNS TEXT AS
+$$
+DECLARE var text;
+        up_rec record;
+BEGIN
+WITH type_dif AS(
+SELECT p.table_name
+       ,p.column_name
+       ,p.data_type AS public_type
+       ,a.data_type AS archive_type
+       ,p.character_maximum_length public_length
+       ,a.character_maximum_length archive_length
+  FROM information_schema.columns p
+  JOIN information_schema.columns a
+    ON p.table_name = a.table_name
+   AND p.column_name = a.column_name
+   AND p.table_schema = 'public'
+   AND a.table_schema = 'archive'
+ WHERE p.data_type <> a.data_type
+    OR (p.data_type = a.data_type
+   AND p.character_maximum_length > a.character_maximum_length)
+ LIMIT 1)
+SELECT * from type_dif INTO up_rec;
+IF up_rec.public_type = 'character varying'
+THEN
+var := 'ALTER TABLE archive.'||up_rec.table_name ||' ALTER COLUMN ' || up_rec.column_name ||' TYPE '|| up_rec.public_type ||'('|| up_rec.public_length ||');';
+ELSE
+var := 'ALTER TABLE archive.'||up_rec.table_name ||' ALTER COLUMN ' || up_rec.column_name ||' TYPE '|| up_rec.public_type ;
+END IF;
+RETURN var;
+END;
+$$
+Language plpgsql;
 
 CREATE OR REPLACE FUNCTION create_archive_tables()
 RETURNS void AS
