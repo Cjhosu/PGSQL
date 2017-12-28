@@ -5,13 +5,13 @@ DECLARE
     v_table_ddl   text;
     column_record record;
 BEGIN
-    FOR column_record IN 
-        SELECT 
+    FOR column_record IN
+      SELECT
             b.nspname as schema_name,
             b.relname as table_name,
             a.attname as column_name,
             pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type,
-            CASE WHEN 
+            CASE WHEN
                 (SELECT substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid) for 128)
                  FROM pg_catalog.pg_attrdef d
                  WHERE d.adrelid = a.attrelid AND d.adnum = a.attnum AND a.atthasdef) IS NOT NULL THEN
@@ -21,35 +21,35 @@ BEGIN
             ELSE
                 ''
             END as column_default_value,
-            CASE WHEN a.attnotnull = true THEN 
+            CASE WHEN a.attnotnull = true THEN
                 'NOT NULL'
             ELSE
                 'NULL'
             END as column_not_null,
             a.attnum as attnum,
             e.max_attnum as max_attnum
-        FROM 
+        FROM
             pg_catalog.pg_attribute a
-            INNER JOIN 
+        JOIN
              (SELECT c.oid,
-                n.nspname,
-                c.relname
-              FROM pg_catalog.pg_class c
-                   LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-              WHERE c.relname ~ ('^('||p_table_name||')$')
-                AND pg_catalog.pg_table_is_visible(c.oid)
-              ORDER BY 2, 3) b
-            ON a.attrelid = b.oid
-            INNER JOIN 
-             (SELECT 
+                     n.nspname,
+                     c.relname
+                FROM pg_catalog.pg_class c
+                LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+               WHERE c.relname ~ ('^('||p_table_name||')$')
+                 AND pg_catalog.pg_table_is_visible(c.oid)
+               ORDER BY 2, 3) b
+          ON a.attrelid = b.oid
+        JOIN
+             (SELECT
                   a.attrelid,
                   max(a.attnum) as max_attnum
               FROM pg_catalog.pg_attribute a
-              WHERE a.attnum > 0 
+              WHERE a.attnum > 0
                 AND NOT a.attisdropped
               GROUP BY a.attrelid) e
-            ON a.attrelid=e.attrelid
-        WHERE a.attnum > 0 
+          ON a.attrelid=e.attrelid
+        WHERE a.attnum > 0
           AND NOT a.attisdropped
         ORDER BY a.attnum
     LOOP
