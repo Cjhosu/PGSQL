@@ -28,8 +28,8 @@ BEGIN
           INSERT INTO arch_batch_logging (archived_started_at) VALUES (now());
           EXECUTE 'INSERT INTO arch_current_batch
             SELECT id from public.'||$1||'
-            WHERE delete_on <= now()
-            ORDER BY delete_on
+            WHERE archive_after <= now()
+            ORDER BY archive_after
             LIMIT 5000;';
           EXECUTE 'INSERT INTO archive.'||$1||'
             SELECT p.* FROM public.'||$1||' p
@@ -42,7 +42,7 @@ BEGIN
               SELECT id, '''||$1||''', (SELECT max(id) FROM arch_batch_logging) FROM arch_current_batch;';
           END IF;
           TRUNCATE TABLE arch_current_batch;
-          EXECUTE 'SELECT count(*) FROM public.'||$1||' WHERE delete_on <= now();' INTO row_num;
+          EXECUTE 'SELECT count(*) FROM public.'||$1||' WHERE archive_after <= now();' INTO row_num;
           INSERT INTO arch_batch_logging (archived_finished_at) VALUES (now());
         END;
       END LOOP;

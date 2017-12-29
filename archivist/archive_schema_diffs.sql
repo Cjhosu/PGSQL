@@ -85,6 +85,10 @@ SELECT p.table_name FROM information_schema.tables p
     ON p.table_name = a.table_name
    AND p.table_schema = 'public'
    AND a.table_schema = 'archive'
+  JOIN information_schema.columns c
+    ON c.table_schema = 'public'
+   AND c.table_name = p.table_name
+   AND c.column_name = 'archive_after'
  WHERE a.table_name is null  and p.table_schema = 'public' limit 1)
 SELECT * from missing_tbl INTO schema_dif;
    var := 'SELECT generate_create_table_statement ('''||schema_dif.table_name ||''');';
@@ -194,12 +198,32 @@ END;
 $$
 Language plpgsql;
 
+CREATE OR REPLACE FUNCTION update_data_types()
+RETURNS void AS
+$$
+DECLARE out_var text;
+BEGIN
+WHILE 1=1
+LOOP
+BEGIN
+ EXECUTE 'SELECT script_data_type_diffs();' INTO out_var;
+EXECUTE out_var;
+EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'All types match';
+RETURN;
+END;
+END LOOP;
+END;
+$$
+Language plpgsql;
+
 CREATE OR REPLACE FUNCTION run_archive_scripts()
 RETURNS void AS
 $$
 BEGIN
 EXECUTE 'SELECT create_archive_tables();';
 EXECUTE 'SELECT create_archive_columns();';
+EXECUTE 'SELECT update_data_types();';
 END;
 $$
 Language plpgsql;

@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION find_and_archive()
   INSERT INTO arch_all_tables (tablename)
     SELECT table_name
     FROM information_schema.columns
-    WHERE column_name = 'delete_on'
+    WHERE column_name = 'archive_after'
       AND table_schema = 'public';
   -- create a table that contains the fk relationships of anything that should be deleted
   DROP TABLE IF EXISTS arch_fk_constraints;
