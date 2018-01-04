@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION generate_create_table_statement(p_table_name varchar)
+CREATE OR REPLACE FUNCTION fn_script_archive_tables(p_table_name varchar)
   RETURNS text AS
 $BODY$
 DECLARE
@@ -72,7 +72,7 @@ $BODY$
   LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION script_archive_tables()
+CREATE OR REPLACE FUNCTION fn_find_archive_tables()
 RETURNS text AS
 $$
 DECLARE var text;
@@ -91,7 +91,7 @@ SELECT p.table_name FROM information_schema.tables p
    AND c.column_name = 'archive_after'
  WHERE a.table_name is null  and p.table_schema = 'public' limit 1)
 SELECT * from missing_tbl INTO schema_dif;
-   var := 'SELECT generate_create_table_statement ('''||schema_dif.table_name ||''');';
+   var := 'SELECT fn_script_archive_tables ('''||schema_dif.table_name ||''');';
 BEGIN
  EXECUTE var into var2;
 Return var2;
@@ -101,7 +101,7 @@ $$
 Language plpgsql;
 
 
-CREATE OR REPLACE FUNCTION script_archive_columns()
+CREATE OR REPLACE FUNCTION fn_script_archive_columns()
 RETURNS text AS
 $$
 DECLARE var text;
@@ -125,7 +125,7 @@ END;
 $$
 Language plpgsql;
 
-CREATE OR REPLACE FUNCTION script_data_type_diffs()
+CREATE OR REPLACE FUNCTION fn_script_data_type_diffs()
 RETURNS TEXT AS
 $$
 DECLARE var text;
@@ -160,7 +160,7 @@ END;
 $$
 Language plpgsql;
 
-CREATE OR REPLACE FUNCTION create_archive_tables()
+CREATE OR REPLACE FUNCTION fn_create_archive_tables()
 RETURNS void AS
 $$
 DECLARE out_var text;
@@ -168,7 +168,7 @@ BEGIN
 WHILE 1=1
 LOOP
 BEGIN
- EXECUTE 'SELECT script_archive_tables();' INTO out_var;
+ EXECUTE 'SELECT fn_find_archive_tables();' INTO out_var;
 EXECUTE out_var;
 EXCEPTION WHEN OTHERS THEN
         RAISE NOTICE 'All tables created';
@@ -179,7 +179,7 @@ END;
 $$
 Language plpgsql;
 
-CREATE OR REPLACE FUNCTION create_archive_columns()
+CREATE OR REPLACE FUNCTION fn_create_archive_columns()
 RETURNS void AS
 $$
 DECLARE out_var text;
@@ -187,7 +187,7 @@ BEGIN
 WHILE 1=1
 LOOP
 BEGIN
- EXECUTE 'SELECT script_archive_columns();' INTO out_var;
+ EXECUTE 'SELECT fn_script_archive_columns();' INTO out_var;
 EXECUTE out_var;
 EXCEPTION WHEN OTHERS THEN
         RAISE NOTICE 'All columns added';
@@ -198,7 +198,7 @@ END;
 $$
 Language plpgsql;
 
-CREATE OR REPLACE FUNCTION update_data_types()
+CREATE OR REPLACE FUNCTION fn_update_data_types()
 RETURNS void AS
 $$
 DECLARE out_var text;
@@ -206,7 +206,7 @@ BEGIN
 WHILE 1=1
 LOOP
 BEGIN
- EXECUTE 'SELECT script_data_type_diffs();' INTO out_var;
+ EXECUTE 'SELECT fn_script_data_type_diffs();' INTO out_var;
 EXECUTE out_var;
 EXCEPTION WHEN OTHERS THEN
         RAISE NOTICE 'All types match';
@@ -217,13 +217,14 @@ END;
 $$
 Language plpgsql;
 
-CREATE OR REPLACE FUNCTION run_archive_scripts()
+CREATE OR REPLACE FUNCTION fn_reconcile_schema()
 RETURNS void AS
 $$
 BEGIN
-EXECUTE 'SELECT create_archive_tables();';
-EXECUTE 'SELECT create_archive_columns();';
-EXECUTE 'SELECT update_data_types();';
+CREATE SCHEMA IF NOT EXISTS archive;
+EXECUTE 'SELECT fn_create_archive_tables();';
+EXECUTE 'SELECT fn_create_archive_columns();';
+EXECUTE 'SELECT fn_update_data_types();';
 END;
 $$
 Language plpgsql;
