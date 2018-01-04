@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION fn_archive_table_data(tablename text)
 RETURNS void AS $$
-
+DECLARE
   row_num BIGINT;
     BEGIN
       CREATE TABLE IF NOT EXISTS archive.record_logging(
@@ -44,7 +44,5 @@ RETURNS void AS $$
         END;
       END LOOP;
     END;
-  END IF;
-END;
 $$
 language plpgsql;
