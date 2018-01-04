@@ -65,6 +65,19 @@ CREATE OR REPLACE FUNCTION find_and_archive()
       ON t.tablename = fk.foreign_table_name
     WHERE fk.foreign_table_name IS NULL;
   -- Get the tables we can delte from pass them to the archiving function
+
+IF (SELECT COUNT(*) 
+      FROM (SELECT DISTINCT
+                   remove_first
+              FROM archive.fk_constraints fk
+              LEFT JOIN archive.all_tables a
+                ON fk.remove_first = a.tablename
+             WHERE a.tablename is null) as T) > 0
+THEN RAISE NOTICE 'One of the tables you are attempting to archive has a constraint that is not being archived';
+RETURN;
+END IF;
+  -- This block is error handling for when a parent is being archived but one of it's children is not
+
   BEGIN
     WHILE (SELECT COUNT(*) FROM archive.all_tables) > 0
     LOOP
@@ -75,7 +88,7 @@ CREATE OR REPLACE FUNCTION find_and_archive()
         rec_id := (SELECT min(id) FROM archive.can_delete c WHERE is_done = 'f');
         archive_table := (SELECT c.tablename FROM archive.can_delete c WHERE id = rec_id);
         EXECUTE 'SELECT fn_archive_table_data('''||archive_table||''');';
-        -- Mark the record we just did
+         -- Mark the record we just did
         UPDATE archive.can_delete SET is_done = 't' WHERE id = rec_id;
         DELETE FROM archive.fk_constraints WHERE remove_first = archive_table;
         DELETE FROM archive.all_tables WHERE tablename = archive_table;
