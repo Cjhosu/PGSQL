@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION find_and_archive()
+CREATE OR REPLACE FUNCTION fn_find_and_archive()
   RETURNS VOID AS $$
   DECLARE
     archive_table TEXT;
@@ -87,7 +87,7 @@ END IF;
         BEGIN
         rec_id := (SELECT min(id) FROM archive.can_delete c WHERE is_done = 'f');
         archive_table := (SELECT c.tablename FROM archive.can_delete c WHERE id = rec_id);
-        EXECUTE 'SELECT fn_archive_table_data('''||archive_table||''');';
+        EXECUTE 'SELECT fn_archive_data('''||archive_table||''');';
          -- Mark the record we just did
         UPDATE archive.can_delete SET is_done = 't' WHERE id = rec_id;
         DELETE FROM archive.fk_constraints WHERE remove_first = archive_table;

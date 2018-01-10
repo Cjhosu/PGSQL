@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION fn_archive_table_data(tablename text)
+CREATE OR REPLACE FUNCTION fn_archive_data(tablename text)
 RETURNS void AS $$
 DECLARE
   row_num BIGINT;
