@@ -24,21 +24,23 @@ DECLARE
         BEGIN
           INSERT INTO archive.batch_logging (archived_started_at) VALUES (now());
           EXECUTE 'INSERT INTO archive.current_batch
-            SELECT id from public.'||$1||'
-            WHERE archive_after <= now()
-            ORDER BY archive_after
-            LIMIT 5000;';
+                   SELECT id from public.'||$1||'
+                    WHERE archive_after <= now()
+                    ORDER BY archive_after
+                    LIMIT 5000;';
           EXECUTE 'INSERT INTO archive.'||$1||'
-            SELECT p.* FROM public.'||$1||' p
-            JOIN archive.current_batch acb ON p.id = acb.id;';
+                   SELECT p.* FROM public.'||$1||' p
+                     JOIN archive.current_batch acb ON p.id = acb.id;';
           EXECUTE 'DELETE FROM public.'||$1||'
-            WHERE id IN (SELECT id FROM archive.current_batch);';
-          IF (Select count(*) from archive.current_batch) > 0
-            THEN
-            EXECUTE 'INSERT INTO archive.record_logging (source_id, source_table, batch_id)
+                    WHERE id IN (SELECT id FROM archive.current_batch);';
+
+          IF (SELECT count(*) from archive.current_batch) > 0
+        THEN
+             EXECUTE 'INSERT INTO archive.record_logging (source_id, source_table, batch_id)
               SELECT id, '''||$1||''', (SELECT max(id) FROM archive.batch_logging) FROM archive.current_batch;';
-          END IF;
-          TRUNCATE TABLE archive.current_batch;
+      END IF;
+
+         TRUNCATE TABLE archive.current_batch;
           EXECUTE 'SELECT count(*) FROM public.'||$1||' WHERE archive_after <= now();' INTO row_num;
            UPDATE archive.batch_logging 
               SET archived_finished_at = now()
