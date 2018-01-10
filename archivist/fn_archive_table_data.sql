@@ -40,7 +40,9 @@ DECLARE
           END IF;
           TRUNCATE TABLE archive.current_batch;
           EXECUTE 'SELECT count(*) FROM public.'||$1||' WHERE archive_after <= now();' INTO row_num;
-          INSERT INTO archive.batch_logging (archived_finished_at) VALUES (now());
+           UPDATE archive.batch_logging 
+              SET archived_finished_at = now()
+            WHERE id = (SELECT MAX(id) FROM archive.batch_logging);
         END;
       END LOOP;
     END;
