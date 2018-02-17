@@ -152,6 +152,7 @@ SELECT * from type_dif INTO up_rec;
 IF up_rec.public_type = 'character varying'
 THEN
 var := 'ALTER TABLE archive.'||up_rec.table_name ||' ALTER COLUMN ' || up_rec.column_name ||' TYPE '|| up_rec.public_type ||'('|| up_rec.public_length ||');';
+
 ELSE
 var := 'ALTER TABLE archive.'||up_rec.table_name ||' ALTER COLUMN ' || up_rec.column_name ||' TYPE '|| up_rec.public_type ;
 END IF;
