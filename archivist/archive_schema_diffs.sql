@@ -85,11 +85,7 @@ SELECT p.table_name FROM information_schema.tables p
     ON p.table_name = a.table_name
    AND p.table_schema = 'public'
    AND a.table_schema = 'archive'
-  JOIN information_schema.columns c
-    ON c.table_schema = 'public'
-   AND c.table_name = p.table_name
-   AND c.column_name = 'archive_after'
- WHERE a.table_name is null  and p.table_schema = 'public' limit 1)
+ WHERE a.table_name is null  and p.table_schema = 'public'  and p.table_name in ('prescriptions','actions','messages','message_contents')limit 1)
 SELECT * from missing_tbl INTO schema_dif;
    var := 'SELECT fn_script_archive_tables ('''||schema_dif.table_name ||''');';
 BEGIN
