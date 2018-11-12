@@ -113,7 +113,10 @@ SELECT p.table_name
    AND p.table_name = a.table_name
    AND a.table_schema = 'archive'
    AND p.table_schema = 'public'
- WHERE a.table_schema is null and p.table_schema = 'public' limit 1)
+ WHERE a.table_schema is null
+   AND p.table_schema = 'public'
+   AND  p.table_name in ('prescriptions', 'actions', 'messages', 'message_contents')
+        limit 1)
 Select * From missing_clm INTO schema_dif;
 var := 'ALTER TABLE archive.'||schema_dif.table_name ||' ADD COLUMN '|| schema_dif.column_name ||' ' || schema_dif.data_type ||';';
 RETURN var;
