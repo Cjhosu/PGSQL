@@ -79,23 +79,25 @@ DECLARE var text;
         var2 text;
         schema_dif record;
 BEGIN
-WITH missing_tbl AS(
-SELECT p.table_name FROM information_schema.tables p
-  LEFT JOIN information_schema.tables a
-    ON p.table_name = a.table_name
-   AND p.table_schema = 'public'
-   AND a.table_schema = 'archive'
-  JOIN information_schema.columns c
-    ON c.table_schema = 'public'
-   AND c.table_name = p.table_name
-   AND c.column_name = 'archive_after'
- WHERE a.table_name is null  and p.table_schema = 'public' limit 1)
-SELECT * from missing_tbl INTO schema_dif;
-   var := 'SELECT fn_script_archive_tables ('''||schema_dif.table_name ||''');';
-BEGIN
- EXECUTE var into var2;
-Return var2;
-END;
+  WITH missing_tbl AS(
+  SELECT p.table_name FROM information_schema.tables p
+    LEFT JOIN information_schema.tables a
+      ON p.table_name = a.table_name
+     AND p.table_schema = 'public'
+     AND a.table_schema = 'archive'
+   WHERE a.table_name is null  and p.table_schema = 'public'  and p.table_name in ('prescriptions','actions','messages','message_contents')limit 1)
+  SELECT * from missing_tbl INTO schema_dif;
+
+  var := 'SELECT fn_script_archive_tables ('''||schema_dif.table_name ||''');';
+  BEGIN
+    IF var IS NULL
+    THEN
+      var2 := NULL;
+    ELSE
+      EXECUTE var into var2;
+    END IF;
+    RETURN var2;
+  END;
 END ;
 $$
 Language plpgsql;
@@ -117,7 +119,10 @@ SELECT p.table_name
    AND p.table_name = a.table_name
    AND a.table_schema = 'archive'
    AND p.table_schema = 'public'
- WHERE a.table_schema is null and p.table_schema = 'public' limit 1)
+ WHERE a.table_schema is null
+   AND p.table_schema = 'public'
+   AND  p.table_name in ('prescriptions', 'actions', 'messages', 'message_contents')
+        limit 1)
 Select * From missing_clm INTO schema_dif;
 var := 'ALTER TABLE archive.'||schema_dif.table_name ||' ADD COLUMN '|| schema_dif.column_name ||' ' || schema_dif.data_type ||';';
 RETURN var;
@@ -166,16 +171,23 @@ RETURNS void AS
 $$
 DECLARE out_var text;
 BEGIN
-WHILE 1=1
-LOOP
-BEGIN
- EXECUTE 'SELECT fn_find_archive_tables();' INTO out_var;
-EXECUTE out_var;
-EXCEPTION WHEN OTHERS THEN
+  WHILE 1=1
+  LOOP
+    BEGIN
+      EXECUTE 'SELECT fn_find_archive_tables();' INTO out_var;
+      IF out_var IS NULL
+      THEN
         RAISE NOTICE 'All tables created';
-RETURN;
-END;
-END LOOP;
+        RETURN;
+      ELSE
+        EXECUTE out_var;
+      END IF;
+      EXCEPTION WHEN OTHERS
+      THEN
+        RAISE NOTICE 'Something has gone awry while creating tables!';
+        RETURN;
+    END;
+  END LOOP;
 END;
 $$
 Language plpgsql;
@@ -185,16 +197,23 @@ RETURNS void AS
 $$
 DECLARE out_var text;
 BEGIN
-WHILE 1=1
-LOOP
-BEGIN
- EXECUTE 'SELECT fn_script_archive_columns();' INTO out_var;
-EXECUTE out_var;
-EXCEPTION WHEN OTHERS THEN
+  WHILE 1=1
+  LOOP
+    BEGIN
+      EXECUTE 'SELECT fn_script_archive_columns();' INTO out_var;
+      IF out_var IS  NULL
+      THEN
         RAISE NOTICE 'All columns added';
-RETURN;
-END;
-END LOOP;
+        RETURN;
+      ELSE
+        EXECUTE out_var;
+      END IF;
+      EXCEPTION WHEN OTHERS
+      THEN
+        RAISE NOTICE 'Something has gone awry while creating columns!';
+        RETURN;
+    END;
+  END LOOP;
 END;
 $$
 Language plpgsql;
@@ -204,16 +223,23 @@ RETURNS void AS
 $$
 DECLARE out_var text;
 BEGIN
-WHILE 1=1
-LOOP
-BEGIN
- EXECUTE 'SELECT fn_script_data_type_diffs();' INTO out_var;
-EXECUTE out_var;
-EXCEPTION WHEN OTHERS THEN
+  WHILE 1=1
+  LOOP
+    BEGIN
+      EXECUTE 'SELECT fn_script_data_type_diffs();' INTO out_var;
+      IF out_var IS NULL
+      THEN
         RAISE NOTICE 'All types match';
-RETURN;
-END;
-END LOOP;
+        RETURN;
+      ELSE
+        EXECUTE out_var;
+      END IF;
+      EXCEPTION WHEN OTHERS
+      THEN
+        RAISE NOTICE 'Something has gone awry while reconciling data types!';
+        RETURN;
+    END;
+  END LOOP;
 END;
 $$
 Language plpgsql;
@@ -222,10 +248,10 @@ CREATE OR REPLACE FUNCTION fn_reconcile_schema()
 RETURNS void AS
 $$
 BEGIN
-CREATE SCHEMA IF NOT EXISTS archive;
-EXECUTE 'SELECT fn_create_archive_tables();';
-EXECUTE 'SELECT fn_create_archive_columns();';
-EXECUTE 'SELECT fn_update_data_types();';
+  CREATE SCHEMA IF NOT EXISTS archive;
+  EXECUTE 'SELECT fn_create_archive_tables();';
+  EXECUTE 'SELECT fn_create_archive_columns();';
+  EXECUTE 'SELECT fn_update_data_types();';
 END;
 $$
 Language plpgsql;
